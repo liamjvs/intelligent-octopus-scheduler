@@ -40,23 +40,6 @@ def getObject():
                 plannedDispatches(accountNumber: $input) {
                     startDt
                     endDt
-                    deltaKwh
-                }
-                registeredKrakenflexDevice(accountNumber: $input) {
-                    chargePointMake
-                    chargePointModel
-                    createdAt
-                    hasToken
-                    status
-                    suspended
-                    vehicleMake
-                    vehicleModel
-                }
-                vehicleChargingPreferences(accountNumber: $input) {
-                    weekdayTargetSoc
-                    weekdayTargetTime
-                    weekendTargetSoc
-                    weekendTargetTime
                 }
             }
         """

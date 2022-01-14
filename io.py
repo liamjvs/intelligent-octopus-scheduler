@@ -87,7 +87,7 @@ for x in times:
                 nextRunStart = slotStart
     if slotEnd > timeNow:
         if slotEnd < ioStart or slotEnd > ioEnd:
-            if (slotEnd < nextRunEnd or nextRunEnd < timeNow) or slotStart == ioEnd:
+            if (slotEnd < nextRunEnd or nextRunEnd < timeNow) or (slotStart == ioEnd and slotEnd < nextRunEnd) or (slotStart == ioEnd and nextRunEnd == ioEnd):
                 partnerSlot = returnPartnerSlotEnd(slotEnd)
                 if not partnerSlot:
                     nextRunEnd = slotEnd

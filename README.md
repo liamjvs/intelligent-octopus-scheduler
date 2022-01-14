@@ -17,9 +17,10 @@ Add the code below to your config to call the python script.
   json_attributes:
     - nextRunStart
     - nextRunEnd
+    - timesObj
   command: "python3 /config/io.py"
   scan_interval: 3600
-  value_template: "{{ value_json }}"
+  value_template: "{{ value_json.updatedAt }}"
 ```
 
 In my automations, I have a template trigger set as below to trigger my automations:

@@ -1,5 +1,5 @@
 # Intelligent Octopus Scheduler
-Quick Python script to query using GraphQL your slots for Intelligent Octopus. I use this with Home Assistant to run my automations.
+Quick Python script to query using GraphQL your slots for [Intelligent Octopus](https://octopus.energy/intelligent-octopus/). I use this with Home Assistant to run my automations.
 
 I haven't explained the logic well in the script but I wanted to prevent my automations from triggering on/off through the day. The script checks if there is a slot adjacent to it and if the slot is in the off-peak period. There are most likely some edge usecases where the script won't output the correct times - in my limited testing (and simluating different use cases) it has been working.
 

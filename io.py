@@ -85,7 +85,7 @@ for i,time in enumerate(times):
         if((slotStart <= ioStart) and (ioStart < slotEnd <= ioEnd)):
             time['endDt'] = str(ioStart)
             times[i] = time
-        if((slotStart <= ioEnd) and (ioEnd < slotEnd)):
+        if((ioStart <= slotStart <= ioEnd) and (ioEnd < slotEnd)):
             time['startDt'] = str(ioEnd)
         newTimes.append(time)
 times = newTimes

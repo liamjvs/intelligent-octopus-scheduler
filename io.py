@@ -1,14 +1,13 @@
-#! /usr/bin/env python
+#!/usr/bin/env python
 import requests,json
-from datetime import datetime,timezone,timedelta
+from datetime import date, datetime,timezone,timedelta
 from requests.models import HTTPError
 
 url = "https://api.octopus.energy/v1/graphql/"
 apikey="" #Y Your Octopus API Key
 accountNumber="" # Your Octopus Account Number
-deltaOnStartInMinutes=0
 
-dateTimeToUse = datetime.now()
+dateTimeToUse = datetime.now().astimezone()
 if dateTimeToUse.hour < 17:
     dateTimeToUse = dateTimeToUse-timedelta(days=1)
 ioStart = dateTimeToUse.astimezone().replace(hour=23, minute=30, second=0, microsecond=0)
@@ -73,30 +72,60 @@ def returnPartnerSlotEnd(endTime):
 #Get Token
 authToken = refreshToken(apikey,accountNumber)
 times = getTimes()
+
 timeNow = datetime.now().astimezone()
-nextRunStart = ioStart
-nextRunEnd = ioEnd
-for x in times:
-    slotStart = datetime.strptime(x['startDt'],'%Y-%m-%d %H:%M:%S%z')
-    slotEnd = datetime.strptime(x['endDt'],'%Y-%m-%d %H:%M:%S%z')
-    if slotStart > timeNow:
-        #Slot is in the future so start scheduling - check if slot is in the IO period:
-        if slotStart < ioStart or slotStart > ioEnd:
-            #It is outside our period - is it less than the current nextRunStart
-            if slotStart < nextRunStart or nextRunStart < timeNow:
-                nextRunStart = slotStart
-    if slotEnd > timeNow:
-        if slotEnd < ioStart or slotEnd > ioEnd:
-            if (slotEnd < nextRunEnd or nextRunEnd < timeNow) or (slotStart == ioEnd and slotEnd < nextRunEnd) or (slotStart <= ioEnd and nextRunEnd == ioEnd):
-                partnerSlot = returnPartnerSlotEnd(slotEnd)
-                if not partnerSlot:
-                    nextRunEnd = slotEnd
-                else:
-                    if partnerSlot != ioStart:
-                        nextRunEnd = partnerSlot
 
-nextRunStart -= timedelta(minutes=deltaOnStartInMinutes)
+#Santise Times
+#Remove times within 23:30-05:30 slots
+newTimes = []
+for i,time in enumerate(times):
+    slotStart = datetime.strptime(time['startDt'],'%Y-%m-%d %H:%M:%S%z').astimezone()
+    slotEnd = datetime.strptime(time['endDt'],'%Y-%m-%d %H:%M:%S%z').astimezone()
+    if(not((ioStart <= slotStart <= ioEnd) and (ioStart <= slotEnd <= ioEnd))):
+        if((slotStart <= ioStart) and (ioStart < slotEnd <= ioEnd)):
+            time['endDt'] = str(ioStart)
+            times[i] = time
+        if((slotStart <= ioEnd) and (ioEnd < slotEnd)):
+            time['startDt'] = str(ioEnd)
+        newTimes.append(time)
+times = newTimes
 
+#Add our IO period
+ioPeriod = json.loads('[{"startDt": "'+str(ioStart)+'","endDt": "'+str(ioEnd)+'"}]')
+times.extend(ioPeriod)
+times.sort(key=lambda x: x['startDt'])
+
+newTimes = []
+#Any partner slots a.k.a. slots next to each other
+for i,time in enumerate(times):
+    if((i+1)<len(times)):
+        while True:
+            slotStart = datetime.strptime(time['startDt'],'%Y-%m-%d %H:%M:%S%z').astimezone()
+            slotEnd = datetime.strptime(time['endDt'],'%Y-%m-%d %H:%M:%S%z').astimezone()
+            partnerStart = datetime.strptime(times[i+1]['startDt'],'%Y-%m-%d %H:%M:%S%z').astimezone()
+            partnerEnd = datetime.strptime(times[i+1]['endDt'],'%Y-%m-%d %H:%M:%S%z').astimezone()
+            if(slotEnd == partnerStart):
+                times.pop((i+1))
+                time['endDt'] = str(partnerEnd)
+                times[i] = time
+            else:
+                break
+
+newTimes = []
+#Any slots in the past
+for i,time in enumerate(times):
+    slotStart = datetime.strptime(time['startDt'],'%Y-%m-%d %H:%M:%S%z').astimezone()
+    slotEnd = datetime.strptime(time['endDt'],'%Y-%m-%d %H:%M:%S%z').astimezone()
+    if(not(slotStart <= timeNow and slotEnd <= timeNow)):
+        newTimes.append(time)
+times = newTimes
+
+# Check if our array is empty (everything may be in the past)
+if(len(times)==0):
+    times = json.loads('[{"startDt": "'+str(ioStart)+'","endDt": "'+str(ioEnd)+'"}]')
+
+nextRunStart = datetime.strptime(times[0]['startDt'],'%Y-%m-%d %H:%M:%S%z').astimezone()
+nextRunEnd = datetime.strptime(times[0]['endDt'],'%Y-%m-%d %H:%M:%S%z').astimezone()
 outputJson = {'nextRunStart':nextRunStart , 'nextRunEnd':nextRunEnd, 'timesObj': times, 'updatedAt': dateTimeToUse}
 outputJsonString = json.dumps(outputJson, indent=4, default=str)
 print(outputJsonString)

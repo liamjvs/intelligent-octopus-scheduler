@@ -12,22 +12,26 @@ You'll need to enter the two variables before executing the script:
 Add the code below to your config to call the python script. 
 
 ```yaml
-- platform: command_line
-  name: Intelligent Octopus Times
-  json_attributes:
-    - nextRunStart
-    - nextRunEnd
-    - timesObj
-  command: "python3 /config/io.py"
-  scan_interval: 3600
-  value_template: "{{ value_json.updatedAt }}"
+sensor:
+  - platform: command_line
+    name: Intelligent Octopus Times
+    json_attributes:
+      - nextRunStart
+      - nextRunEnd
+      - timesObj
+    command: "python3 /config/io.py"
+    scan_interval: 3600
+    value_template: "{{ value_json.updatedAt }}"
+
+template:
+  - binary_sensor:
+    - name: "Octopus Intelligent Slot"
+      state: '{{ as_timestamp(states("sensor.intelligent_octopus_start")) <= as_timestamp(now()) <= as_timestamp(states("sensor.intelligent_octopus_end")) }}'
+  - sensor:
+    - name: 'Intelligent Octopus Start'
+      state: '{{ state_attr("sensor.intelligent_octopus_times","nextRunStart") }}'
+    - name: 'Intelligent Octopus End'
+      state: '{{ state_attr("sensor.intelligent_octopus_times","nextRunEnd") }}'
 ```
 
-In my automations, I have a template trigger set as below to trigger my automations:
-```  
-{{ as_timestamp(state_attr("sensor.intelligent_octopus_times","nextRunStart")) <= as_timestamp(now()) }}
-```
-And this one to stop them:
-```
-{{ as_timestamp(state_attr("sensor.intelligent_octopus_times","nextRunEnd")) <= as_timestamp(now()) }}
-```
+In your automations, you can use `binary_sensor.octopus_intelligent_slot`.

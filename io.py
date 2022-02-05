@@ -98,10 +98,10 @@ times.sort(key=lambda x: x['startDt'])
 newTimes = []
 #Any partner slots a.k.a. slots next to each other
 for i,time in enumerate(times):
-    if((i+1)<len(times)):
-        while True:
-            slotStart = datetime.strptime(time['startDt'],'%Y-%m-%d %H:%M:%S%z').astimezone()
-            slotEnd = datetime.strptime(time['endDt'],'%Y-%m-%d %H:%M:%S%z').astimezone()
+    while True:
+        slotStart = datetime.strptime(time['startDt'],'%Y-%m-%d %H:%M:%S%z').astimezone()
+        slotEnd = datetime.strptime(time['endDt'],'%Y-%m-%d %H:%M:%S%z').astimezone()
+        if((i+1)<len(times)):
             partnerStart = datetime.strptime(times[i+1]['startDt'],'%Y-%m-%d %H:%M:%S%z').astimezone()
             partnerEnd = datetime.strptime(times[i+1]['endDt'],'%Y-%m-%d %H:%M:%S%z').astimezone()
             if(slotEnd == partnerStart):
@@ -110,6 +110,8 @@ for i,time in enumerate(times):
                 times[i] = time
             else:
                 break
+        else:
+            break
 
 newTimes = []
 #Any slots in the past

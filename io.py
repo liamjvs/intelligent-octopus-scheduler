@@ -2,6 +2,7 @@
 import requests,json
 from datetime import date, datetime,timezone,timedelta
 from requests.models import HTTPError
+from zoneinfo import ZoneInfo
 
 url = "https://api.octopus.energy/v1/graphql/"
 apikey="" #Y Your Octopus API Key
@@ -73,11 +74,20 @@ def returnPartnerSlotEnd(endTime):
 authToken = refreshToken(apikey,accountNumber)
 times = getTimes()
 
-timeNow = datetime.now().astimezone()
+#Convert to the current timezone
+for i,time in enumerate(times):
+    slotStart = datetime.strptime(time['startDt'],'%Y-%m-%d %H:%M:%S%z').astimezone(ZoneInfo("Europe/London"))
+    slotEnd = datetime.strptime(time['endDt'],'%Y-%m-%d %H:%M:%S%z').astimezone(ZoneInfo("Europe/London"))
+    time['startDt'] = str(slotStart)
+    time['endDt'] = str(slotEnd)
+    times[i] = time
+
+timeNow = datetime.now(timezone.utc).astimezone()
 
 #Santise Times
 #Remove times within 23:30-05:30 slots
 newTimes = []
+addExtraSlot = True
 for i,time in enumerate(times):
     slotStart = datetime.strptime(time['startDt'],'%Y-%m-%d %H:%M:%S%z').astimezone()
     slotEnd = datetime.strptime(time['endDt'],'%Y-%m-%d %H:%M:%S%z').astimezone()
@@ -88,12 +98,16 @@ for i,time in enumerate(times):
         if((ioStart <= slotStart <= ioEnd) and (ioEnd < slotEnd)):
             time['startDt'] = str(ioEnd)
         newTimes.append(time)
+    if((slotStart <= ioStart <= slotEnd) and (slotStart <= ioEnd <= slotEnd)):
+        #This slot overlaps our IO slot - we need not add it manually at the next step
+        addExtraSlot = False
 times = newTimes
 
-#Add our IO period
-ioPeriod = json.loads('[{"startDt": "'+str(ioStart)+'","endDt": "'+str(ioEnd)+'"}]')
-times.extend(ioPeriod)
-times.sort(key=lambda x: x['startDt'])
+if(addExtraSlot):
+    #Add our IO period
+    ioPeriod = json.loads('[{"startDt": "'+str(ioStart)+'","endDt": "'+str(ioEnd)+'"}]')
+    times.extend(ioPeriod)
+    times.sort(key=lambda x: x['startDt'])
 
 newTimes = []
 #Any partner slots a.k.a. slots next to each other
